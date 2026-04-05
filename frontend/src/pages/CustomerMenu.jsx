@@ -93,16 +93,17 @@ const CustomerMenu = () => {
   if (screen === 'welcome') {
     return (
       <div style={{
-        minHeight: '100vh',
-        background: '#1A1208',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '2rem',
-        textAlign: 'center',
-        fontFamily: "'DM Sans', sans-serif"
-      }}>
+  minHeight: '100vh',
+  background: '#1A1208',
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  justifyContent: 'center',
+  padding: '2rem',
+  textAlign: 'center',
+  fontFamily: "'DM Sans', sans-serif",
+  position: 'relative'
+}}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1.5rem' }}>
           <div style={{ height: '0.5px', width: '70px', background: 'linear-gradient(90deg, transparent, #C9A84C)' }}></div>
           <div style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#C9A84C' }}></div>
@@ -173,6 +174,20 @@ const CustomerMenu = () => {
         >
           Enter
         </button>
+        {/* Your name credit */}
+<div style={{
+  position: 'absolute',
+  bottom: '20px',
+  left: 0,
+  right: 0,
+  textAlign: 'center',
+  fontSize: '10px',
+  color: 'rgba(201,168,76,0.25)',
+  letterSpacing: '1px',
+  fontFamily: "'DM Sans', sans-serif"
+}}>
+  Designed & Developed by Sai Sumanth
+</div>
       </div>
     );
   }
