@@ -576,7 +576,7 @@ const AdminDashboard = () => {
               <div style={{ display: 'inline-block', padding: '16px', background: '#fff', borderRadius: '14px', border: '0.5px solid rgba(201,168,76,0.2)', marginBottom: '16px' }}>
                 <QRCodeCanvas
                   id="qr-canvas"
-                  value={`${window.location.origin}/menu/${qrTable.table_number}`}
+                  value={`https://ice-magic.netlify.app/menu/${qrTable.table_number}`}
                   size={180}
                   bgColor="#ffffff"
                   fgColor="#1A1208"
@@ -586,7 +586,7 @@ const AdminDashboard = () => {
 
               {/* URL */}
               <div style={{ fontSize: '10px', color: '#8A7A5A', background: '#F5E6C0', borderRadius: '8px', padding: '6px 12px', marginBottom: '20px', wordBreak: 'break-all' }}>
-                {window.location.origin}/menu/{qrTable.table_number}
+                https://ice-magic.netlify.app/menu/{qrTable.table_number}
               </div>
 
               {/* Buttons */}
