@@ -15,6 +15,13 @@ app.use('/api/orders', require('./routes/orderRoutes'));
 app.use('/api/bills', require('./routes/billRoutes'));
 app.use('/api/staff', require('./routes/staffRoutes'));
 app.use('/api/upload', require('./routes/uploadRoutes'));
+app.use(cors({
+  origin: [
+    'https://69d230d63b0b3d08739075bb--ice-magic.netlify.app',
+    'http://localhost:5173'
+  ],
+  credentials: true
+}));
 
 app.get('/', (req, res) => {
   res.json({ message: 'Restaurant App API Running!' });
