@@ -6,7 +6,6 @@ import Login from './pages/Login';
 import CustomerMenu from './pages/CustomerMenu';
 import StaffDashboard from './pages/StaffDashboard';
 import AdminDashboard from './pages/AdminDashboard';
-import NotFoundPage from './pages/NotFoundPage'; // create a simple 404 component
 
 function App() {
   const { user } = useAuth();
@@ -18,36 +17,28 @@ function App() {
         <Route path="/menu/:tableNumber" element={<CustomerMenu />} />
         <Route
           path="/login"
-          element={
-            user
-              ? <Navigate to={user.role === 'admin' ? '/admin/dashboard' : '/staff/tables'} />
-              : <Login />
-          }
+          element={user
+            ? <Navigate to={user.role === 'admin' ? '/admin/dashboard' : '/staff/tables'} />
+            : <Login />}
         />
 
         {/* Staff Routes */}
-        <Route
-          path="/staff/*"
-          element={
-            <ProtectedRoute>
-              <StaffDashboard />
-            </ProtectedRoute>
-          }
-        />
+        <Route path="/staff/*" element={
+          <ProtectedRoute>
+            <StaffDashboard />
+          </ProtectedRoute>
+        } />
 
         {/* Admin Routes */}
-        <Route
-          path="/admin/*"
-          element={
-            <ProtectedRoute adminOnly>
-              <AdminDashboard />
-            </ProtectedRoute>
-          }
-        />
+        <Route path="/admin/*" element={
+          <ProtectedRoute adminOnly>
+            <AdminDashboard />
+          </ProtectedRoute>
+        } />
 
         {/* Default */}
         <Route path="/" element={<Navigate to="/login" />} />
-        <Route path="*" element={<NotFoundPage />} />
+        <Route path="*" element={<Navigate to="/login" />} />
       </Routes>
     </BrowserRouter>
   );
