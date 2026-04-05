@@ -1,6 +1,27 @@
 [build]
+  base = "frontend"
   command = "npm run build"
   publish = "dist"
+
+[[redirects]]
+  from = "/menu/*"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/staff/*"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/admin/*"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/login"
+  to = "/index.html"
+  status = 200
 
 [[redirects]]
   from = "/*"
