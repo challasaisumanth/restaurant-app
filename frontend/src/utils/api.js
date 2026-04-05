@@ -16,8 +16,6 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    // ✅ Only redirect to login for protected routes
-    // Customer menu should never redirect to login
     if (error.response?.status === 401) {
       const isMenuRoute = window.location.pathname.startsWith('/menu');
       if (!isMenuRoute) {

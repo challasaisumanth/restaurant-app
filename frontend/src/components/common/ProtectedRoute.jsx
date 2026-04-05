@@ -4,7 +4,6 @@ import { useAuth } from '../../context/AuthContext';
 const ProtectedRoute = ({ children, adminOnly = false }) => {
   const { user, loading } = useAuth();
 
-  // ✅ Wait for auth to finish loading before redirecting
   if (loading) {
     return (
       <div style={{

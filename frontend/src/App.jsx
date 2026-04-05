@@ -8,20 +8,43 @@ import StaffDashboard from './pages/StaffDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 
 function App() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        background: '#1A1208',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}>
+        <div style={{
+          fontFamily: "'Playfair Display', serif",
+          fontSize: '24px',
+          color: '#C9A84C',
+          letterSpacing: '2px'
+        }}>
+          ICE MAGIC
+        </div>
+      </div>
+    );
+  }
 
   return (
     <BrowserRouter>
       <Routes>
-        {/* ✅ Customer menu — completely public, no auth check */}
+        {/* ✅ Customer menu — 100% public */}
         <Route path="/menu/:tableNumber" element={<CustomerMenu />} />
 
         {/* Login */}
         <Route
           path="/login"
-          element={user
-            ? <Navigate to={user.role === 'admin' ? '/admin/dashboard' : '/staff/tables'} />
-            : <Login />}
+          element={
+            !loading && user
+              ? <Navigate to={user.role === 'admin' ? '/admin/dashboard' : '/staff/tables'} replace />
+              : <Login />
+          }
         />
 
         {/* Staff Routes */}
@@ -39,8 +62,8 @@ function App() {
         } />
 
         {/* Default */}
-        <Route path="/" element={<Navigate to="/login" />} />
-        <Route path="*" element={<Navigate to="/login" />} />
+        <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </BrowserRouter>
   );

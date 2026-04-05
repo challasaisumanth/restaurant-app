@@ -16,35 +16,35 @@ export const AuthProvider = ({ children }) => {
   };
 
   useEffect(() => {
-    try {
-      const savedToken = localStorage.getItem('token');
-      const savedUser = localStorage.getItem('user');
-      const loginTime = localStorage.getItem('loginTime');
+    const init = () => {
+      try {
+        const savedToken = localStorage.getItem('token');
+        const savedUser = localStorage.getItem('user');
+        const loginTime = localStorage.getItem('loginTime');
 
-      if (savedToken && savedUser) {
-        if (loginTime) {
-          const elapsed = Date.now() - parseInt(loginTime);
-          if (elapsed > 2 * 60 * 60 * 1000) {
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-            localStorage.removeItem('loginTime');
-            setLoading(false);
-            return;
+        if (savedToken && savedUser) {
+          if (loginTime) {
+            const elapsed = Date.now() - parseInt(loginTime);
+            if (elapsed > 2 * 60 * 60 * 1000) {
+              localStorage.removeItem('token');
+              localStorage.removeItem('user');
+              localStorage.removeItem('loginTime');
+              return;
+            }
           }
+          setToken(savedToken);
+          setUser(JSON.parse(savedUser));
+          startAutoLogout();
         }
-        setToken(savedToken);
-        setUser(JSON.parse(savedUser));
-        startAutoLogout();
+      } catch (err) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        localStorage.removeItem('loginTime');
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      console.error('Auth error:', err);
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      localStorage.removeItem('loginTime');
-    } finally {
-      // ✅ Always set loading false — no matter what
-      setLoading(false);
-    }
+    };
+    init();
   }, []);
 
   const login = (userData, userToken) => {
