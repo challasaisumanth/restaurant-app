@@ -3,9 +3,16 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const startCleanupJob = require('./utils/cleanupOrders');
+const keepAlive = require('./utils/keepAlive');
 
 const app = express();
-app.use(cors());
+app.use(cors({
+  origin: [
+    'https://ice-magic.netlify.app',
+    'http://localhost:5173'
+  ],
+  credentials: true
+}));
 app.use(express.json());
 
 app.use('/api/auth', require('./routes/authRoutes'));
@@ -15,13 +22,6 @@ app.use('/api/orders', require('./routes/orderRoutes'));
 app.use('/api/bills', require('./routes/billRoutes'));
 app.use('/api/staff', require('./routes/staffRoutes'));
 app.use('/api/upload', require('./routes/uploadRoutes'));
-app.use(cors({
-  origin: [
-    'https://69d230d63b0b3d08739075bb--ice-magic.netlify.app',
-    'http://localhost:5173'
-  ],
-  credentials: true
-}));
 
 app.get('/', (req, res) => {
   res.json({ message: 'Restaurant App API Running!' });
@@ -37,6 +37,7 @@ mongoose.connect(process.env.MONGO_URI, {
 .then(() => {
   console.log('MongoDB Connected:', mongoose.connection.host);
   startCleanupJob();
+  keepAlive();
   app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
   });

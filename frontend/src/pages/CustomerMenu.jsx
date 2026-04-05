@@ -10,7 +10,9 @@ const CustomerMenu = () => {
   const [selectedCategory, setSelectedCategory] = useState('');
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [tableType, setTableType] = useState('non-ac');
+  const [allItemsCache, setAllItemsCache] = useState({});
 
   const categoryIcons = {
     'Veg-Starters': '🥗',
@@ -26,7 +28,6 @@ const CustomerMenu = () => {
     'Beverages': 'Refreshing sips'
   };
 
-  // Default gradient backgrounds per category when no image
   const categoryGradients = {
     'Veg-Starters': 'linear-gradient(135deg, #2D6A4F, #52B788)',
     'Paneer-Items': 'linear-gradient(135deg, #C9A84C, #E9C46A)',
@@ -36,74 +37,144 @@ const CustomerMenu = () => {
 
   const getGradient = (cat) => categoryGradients[cat] || 'linear-gradient(135deg, #8A7A5A, #C9A84C)';
 
+  // ✅ All API calls at once using Promise.all — much faster!
   useEffect(() => {
-    const fetchTableType = async () => {
+    const fetchAll = async () => {
+      setCategoriesLoading(true);
       try {
-        const res = await api.get('/tables');
-        const table = res.data.tables.find(t => t.table_number === parseInt(tableNumber));
+        const [tableRes, catRes, menuRes] = await Promise.all([
+          api.get('/tables'),
+          api.get('/menu/categories'),
+          api.get('/menu')
+        ]);
+
+        // Set table type
+        const table = tableRes.data.tables.find(
+          t => t.table_number === parseInt(tableNumber)
+        );
         if (table?.type) setTableType(table.type);
-      } catch (err) { console.error(err); }
-    };
 
-    const fetchCategories = async () => {
-      try {
-        const res = await api.get('/menu/categories');
-        if (res.data.categories && res.data.categories.length > 0) {
-          setCategories(res.data.categories);
-        }
-      } catch (err) { console.error(err); }
-    };
+        // Set categories
+        const fetchedCategories = catRes.data.categories?.length > 0
+          ? catRes.data.categories
+          : ['Veg-Starters', 'Paneer-Items', 'Ice Creams', 'Beverages'];
+        setCategories(fetchedCategories);
 
-    const fetchCategoryImages = async () => {
-      try {
-        const res = await api.get('/menu');
-        const items = res.data.items;
-        // Pick first available item image per category
+        // Set category images from first available item per category
+        const allItems = menuRes.data.items;
         const imgMap = {};
-        items.forEach(item => {
+        allItems.forEach(item => {
           if (item.image_url && item.availability && !imgMap[item.category]) {
             imgMap[item.category] = item.image_url;
           }
         });
         setCategoryImages(imgMap);
-      } catch (err) { console.error(err); }
+
+        // ✅ Cache all items per category so clicking category is instant!
+        const itemsCache = {};
+        fetchedCategories.forEach(cat => {
+          itemsCache[cat] = allItems.filter(i => i.category === cat);
+        });
+        setAllItemsCache(itemsCache);
+
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setCategoriesLoading(false);
+      }
     };
 
-    fetchTableType();
-    fetchCategories();
-    fetchCategoryImages();
+    fetchAll();
   }, [tableNumber]);
+
+  // ✅ Uses cache — no API call needed when clicking category!
+  const handleCategoryClick = (category) => {
+    setSelectedCategory(category);
+    if (allItemsCache[category]) {
+      setItems(allItemsCache[category]);
+    } else {
+      fetchItems(category);
+    }
+    setScreen('items');
+  };
 
   const fetchItems = async (category) => {
     setLoading(true);
     try {
       const res = await api.get(`/menu?category=${category}`);
       setItems(res.data.items);
-    } catch (err) { console.error(err); }
-    finally { setLoading(false); }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleCategoryClick = (category) => {
-    setSelectedCategory(category);
-    fetchItems(category);
-    setScreen('items');
-  };
+  // ── Loading Screen ──────────────────────────────────────────────────────────
+  if (categoriesLoading && screen === 'categories') {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        background: '#1A1208',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '16px',
+        fontFamily: "'DM Sans', sans-serif"
+      }}>
+        <div style={{
+          fontFamily: "'Playfair Display', serif",
+          fontSize: '28px',
+          color: '#C9A84C',
+          letterSpacing: '3px'
+        }}>ICE MAGIC</div>
+        <div style={{
+          fontSize: '12px',
+          color: 'rgba(201,168,76,0.5)',
+          letterSpacing: '2px'
+        }}>
+          Loading menu...
+        </div>
+        <div style={{
+          width: '120px', height: '3px',
+          background: 'rgba(201,168,76,0.15)',
+          borderRadius: '2px',
+          overflow: 'hidden'
+        }}>
+          <div style={{
+            height: '100%',
+            width: '40%',
+            background: '#C9A84C',
+            borderRadius: '2px',
+            animation: 'slide 1.5s ease-in-out infinite'
+          }}></div>
+        </div>
+        <style>{`
+          @keyframes slide {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(350%); }
+          }
+        `}</style>
+      </div>
+    );
+  }
 
   // ── Welcome Screen ──────────────────────────────────────────────────────────
   if (screen === 'welcome') {
     return (
       <div style={{
-  minHeight: '100vh',
-  background: '#1A1208',
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'center',
-  justifyContent: 'center',
-  padding: '2rem',
-  textAlign: 'center',
-  fontFamily: "'DM Sans', sans-serif",
-  position: 'relative'
-}}>
+        minHeight: '100vh',
+        background: '#1A1208',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '2rem',
+        textAlign: 'center',
+        fontFamily: "'DM Sans', sans-serif",
+        position: 'relative'
+      }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1.5rem' }}>
           <div style={{ height: '0.5px', width: '70px', background: 'linear-gradient(90deg, transparent, #C9A84C)' }}></div>
           <div style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#C9A84C' }}></div>
@@ -174,20 +245,21 @@ const CustomerMenu = () => {
         >
           Enter
         </button>
+
         {/* Your name credit */}
-<div style={{
-  position: 'absolute',
-  bottom: '20px',
-  left: 0,
-  right: 0,
-  textAlign: 'center',
-  fontSize: '10px',
-  color: 'rgba(201,168,76,0.25)',
-  letterSpacing: '1px',
-  fontFamily: "'DM Sans', sans-serif"
-}}>
-  Designed & Developed by Sai Sumanth
-</div>
+        <div style={{
+          position: 'absolute',
+          bottom: '20px',
+          left: 0,
+          right: 0,
+          textAlign: 'center',
+          fontSize: '10px',
+          color: 'rgba(201,168,76,0.25)',
+          letterSpacing: '1px',
+          fontFamily: "'DM Sans', sans-serif"
+        }}>
+          Designed & Developed by Sai Sumanth
+        </div>
       </div>
     );
   }
@@ -264,21 +336,14 @@ const CustomerMenu = () => {
                 <div style={{
                   position: 'absolute',
                   inset: 0,
-                  background: categoryImages[cat]
-                    ? 'none'
-                    : getGradient(cat),
+                  background: categoryImages[cat] ? 'none' : getGradient(cat),
                   zIndex: 0
                 }}>
                   {categoryImages[cat] && (
                     <img
                       src={categoryImages[cat]}
                       alt={cat}
-                      style={{
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'cover',
-                        display: 'block'
-                      }}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                       onError={(e) => {
                         e.target.style.display = 'none';
                         e.target.parentElement.style.background = getGradient(cat);
@@ -287,36 +352,26 @@ const CustomerMenu = () => {
                   )}
                 </div>
 
-                {/* Dark overlay for text readability */}
+                {/* Dark overlay */}
                 <div style={{
-                  position: 'absolute',
-                  inset: 0,
+                  position: 'absolute', inset: 0,
                   background: 'linear-gradient(to top, rgba(26,18,8,0.9) 0%, rgba(26,18,8,0.3) 50%, rgba(26,18,8,0.1) 100%)',
                   zIndex: 1
                 }}></div>
 
                 {/* Content */}
                 <div style={{
-                  position: 'absolute',
-                  inset: 0,
-                  zIndex: 2,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'space-between',
-                  padding: '14px'
+                  position: 'absolute', inset: 0, zIndex: 2,
+                  display: 'flex', flexDirection: 'column',
+                  justifyContent: 'space-between', padding: '14px'
                 }}>
                   {/* Icon top left */}
                   <div style={{
-                    width: '36px',
-                    height: '36px',
-                    borderRadius: '10px',
+                    width: '36px', height: '36px', borderRadius: '10px',
                     background: 'rgba(201,168,76,0.2)',
                     border: '0.5px solid rgba(201,168,76,0.4)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '18px',
-                    backdropFilter: 'blur(4px)'
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: '18px'
                   }}>
                     {categoryIcons[cat] || '🍽️'}
                   </div>
@@ -325,30 +380,20 @@ const CustomerMenu = () => {
                   <div>
                     <div style={{
                       fontFamily: "'Playfair Display', serif",
-                      fontSize: '16px',
-                      color: '#FFFDF7',
-                      marginBottom: '3px',
-                      fontWeight: '500'
+                      fontSize: '16px', color: '#FFFDF7',
+                      marginBottom: '3px', fontWeight: '500'
                     }}>
                       {cat}
                     </div>
-                    <div style={{
-                      fontSize: '10px',
-                      color: 'rgba(255,255,255,0.6)',
-                      marginBottom: '8px'
-                    }}>
+                    <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.6)', marginBottom: '8px' }}>
                       {categoryDesc[cat] || 'Delicious selections'}
                     </div>
                     <div style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '4px',
+                      display: 'inline-flex', alignItems: 'center', gap: '4px',
                       background: 'rgba(201,168,76,0.2)',
                       border: '0.5px solid rgba(201,168,76,0.4)',
-                      borderRadius: '20px',
-                      padding: '3px 10px',
-                      fontSize: '10px',
-                      color: '#C9A84C'
+                      borderRadius: '20px', padding: '3px 10px',
+                      fontSize: '10px', color: '#C9A84C'
                     }}>
                       View Menu ›
                     </div>
@@ -419,9 +464,7 @@ const CustomerMenu = () => {
         {/* Category Header Banner */}
         <div style={{
           height: '120px',
-          background: categoryImages[selectedCategory]
-            ? 'none'
-            : getGradient(selectedCategory),
+          background: categoryImages[selectedCategory] ? 'none' : getGradient(selectedCategory),
           position: 'relative',
           overflow: 'hidden'
         }}>
@@ -455,14 +498,18 @@ const CustomerMenu = () => {
 
         <div style={{ padding: '20px 16px 32px' }}>
           {loading ? (
-            <div style={{ textAlign: 'center', padding: '3rem', color: '#C9A84C' }}>Loading...</div>
+            <div style={{ textAlign: 'center', padding: '3rem', color: '#C9A84C' }}>
+              Loading...
+            </div>
           ) : (
             <>
               {availableItems.length > 0 && (
                 <>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
                     <div style={{ flex: 1, height: '0.5px', background: 'rgba(201,168,76,0.18)' }}></div>
-                    <span style={{ fontSize: '9px', color: '#8A7A5A', letterSpacing: '1.5px', textTransform: 'uppercase' }}>Available Now</span>
+                    <span style={{ fontSize: '9px', color: '#8A7A5A', letterSpacing: '1.5px', textTransform: 'uppercase' }}>
+                      Available Now
+                    </span>
                     <div style={{ flex: 1, height: '0.5px', background: 'rgba(201,168,76,0.18)' }}></div>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
@@ -477,7 +524,9 @@ const CustomerMenu = () => {
                 <>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '20px 0 16px' }}>
                     <div style={{ flex: 1, height: '0.5px', background: 'rgba(201,168,76,0.18)' }}></div>
-                    <span style={{ fontSize: '9px', color: '#8A7A5A', letterSpacing: '1.5px', textTransform: 'uppercase' }}>Currently Unavailable</span>
+                    <span style={{ fontSize: '9px', color: '#8A7A5A', letterSpacing: '1.5px', textTransform: 'uppercase' }}>
+                      Currently Unavailable
+                    </span>
                     <div style={{ flex: 1, height: '0.5px', background: 'rgba(201,168,76,0.18)' }}></div>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
@@ -501,6 +550,7 @@ const CustomerMenu = () => {
   }
 };
 
+// ── Item Card ──────────────────────────────────────────────────────────────
 const ItemCard = ({ item, unavailable, tableType }) => {
   const displayPrice = tableType === 'ac' ? item.ac_price : item.non_ac_price;
 
@@ -533,7 +583,8 @@ const ItemCard = ({ item, unavailable, tableType }) => {
         )}
         <span style={{
           position: 'absolute', top: '8px', right: '8px',
-          fontSize: '8px', padding: '2px 7px', borderRadius: '6px', fontWeight: '500',
+          fontSize: '8px', padding: '2px 7px',
+          borderRadius: '6px', fontWeight: '500',
           background: unavailable ? '#FDECEA' : '#D8F3DC',
           color: unavailable ? '#A33030' : '#2D6A4F',
           border: `0.5px solid ${unavailable ? 'rgba(163,48,48,0.2)' : 'rgba(45,106,79,0.2)'}`
