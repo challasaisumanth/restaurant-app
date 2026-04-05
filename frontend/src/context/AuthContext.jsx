@@ -8,37 +8,43 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const timeoutRef = useRef(null);
 
-  // Auto logout after 2 hours
   const startAutoLogout = () => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     timeoutRef.current = setTimeout(() => {
       logout();
-    }, 2 * 60 * 60 * 1000); // 2 hours
+    }, 2 * 60 * 60 * 1000);
   };
 
   useEffect(() => {
-    const savedToken = localStorage.getItem('token');
-    const savedUser = localStorage.getItem('user');
-    const loginTime = localStorage.getItem('loginTime');
+    try {
+      const savedToken = localStorage.getItem('token');
+      const savedUser = localStorage.getItem('user');
+      const loginTime = localStorage.getItem('loginTime');
 
-    if (savedToken && savedUser) {
-      // Check if token is older than 2 hours
-      if (loginTime) {
-        const elapsed = Date.now() - parseInt(loginTime);
-        if (elapsed > 2 * 60 * 60 * 1000) {
-          // Token expired
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
-          localStorage.removeItem('loginTime');
-          setLoading(false);
-          return;
+      if (savedToken && savedUser) {
+        if (loginTime) {
+          const elapsed = Date.now() - parseInt(loginTime);
+          if (elapsed > 2 * 60 * 60 * 1000) {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            localStorage.removeItem('loginTime');
+            setLoading(false);
+            return;
+          }
         }
+        setToken(savedToken);
+        setUser(JSON.parse(savedUser));
+        startAutoLogout();
       }
-      setToken(savedToken);
-      setUser(JSON.parse(savedUser));
-      startAutoLogout();
+    } catch (err) {
+      console.error('Auth error:', err);
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      localStorage.removeItem('loginTime');
+    } finally {
+      // ✅ Always set loading false — no matter what
+      setLoading(false);
     }
-    setLoading(false);
   }, []);
 
   const login = (userData, userToken) => {

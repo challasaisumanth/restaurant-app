@@ -13,8 +13,10 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Public Routes */}
+        {/* ✅ Customer menu — completely public, no auth check */}
         <Route path="/menu/:tableNumber" element={<CustomerMenu />} />
+
+        {/* Login */}
         <Route
           path="/login"
           element={user

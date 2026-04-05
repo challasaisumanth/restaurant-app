@@ -16,11 +16,16 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    // ✅ Only redirect to login for protected routes
+    // Customer menu should never redirect to login
     if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      localStorage.removeItem('loginTime');
-      window.location.href = '/login';
+      const isMenuRoute = window.location.pathname.startsWith('/menu');
+      if (!isMenuRoute) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        localStorage.removeItem('loginTime');
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }
