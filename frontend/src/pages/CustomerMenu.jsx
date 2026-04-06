@@ -111,7 +111,7 @@ const CustomerMenu = () => {
   };
 
   // ── Loading Screen ──────────────────────────────────────────────────────────
-  if (categoriesLoading && screen === 'categories') {
+  if (categoriesLoading && screen !== 'welcome') {
     return (
       <div style={{
         minHeight: '100vh',

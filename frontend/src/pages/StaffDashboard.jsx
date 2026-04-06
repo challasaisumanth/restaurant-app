@@ -12,9 +12,11 @@ const StaffDashboard = () => {
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
   const [screen, setScreen] = useState('tables');
+  const [categories, setCategories] = useState([]);
 
   useEffect(() => {
     fetchTables();
+    fetchCategories();
   }, []);
 
   const fetchTables = async () => {
@@ -25,6 +27,15 @@ const StaffDashboard = () => {
       console.error(err);
     }
   };
+
+  const fetchCategories = async () => {
+  try {
+    const res = await api.get('/menu/categories');
+    if (res.data.categories?.length > 0) {
+      setCategories(res.data.categories);
+    }
+  } catch (err) { console.error(err); }
+};
 
   const fetchOrder = async (tableNumber) => {
     try {
@@ -350,7 +361,7 @@ const StaffDashboard = () => {
         />
 
         {/* Items grouped by category */}
-        {['Veg-Starters', 'Paneer-Items', 'Ice Creams', 'Beverages'].map(category => {
+        {categories.map(category => {
           const categoryItems = menuItems.filter(item =>
             item.category === category &&
             (!searchQuery || item.name.toLowerCase().includes(searchQuery.toLowerCase()))
