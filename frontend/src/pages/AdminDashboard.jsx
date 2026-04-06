@@ -337,8 +337,13 @@ const AdminDashboard = () => {
   };
 
   const totalAmount = (order?.items || []).reduce(
-    (sum, item) => sum + item.price * item.quantity, 0
+    (sum, item) => sum + (Number(item.price) || 0) * (Number(item.quantity) || 0), 0
   );
+
+  const formatAmount = (value) => {
+    const amount = (Number(value) || 0).toFixed(2);
+    return amount.endsWith('.00') ? amount.slice(0, -3) : amount;
+  };
 
   const getStatusColor = (status) => {
     if (status === 'available') return { bg: '#D8F3DC', color: '#2D6A4F', border: 'rgba(45,106,79,0.3)' };
@@ -641,7 +646,7 @@ const AdminDashboard = () => {
                       <button onClick={() => updateQuantity(item.menuItem_id, -1)} style={{ width: '18px', height: '18px', borderRadius: '50%', border: '0.5px solid rgba(201,168,76,0.3)', background: '#FDF8EE', cursor: 'pointer', fontSize: '12px', color: '#1A1208', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>−</button>
                       <span style={{ fontSize: '11px', fontWeight: '500', minWidth: '14px', textAlign: 'center' }}>{item.quantity}</span>
                       <button onClick={() => updateQuantity(item.menuItem_id, 1)} style={{ width: '18px', height: '18px', borderRadius: '50%', border: '0.5px solid rgba(201,168,76,0.3)', background: '#FDF8EE', cursor: 'pointer', fontSize: '12px', color: '#1A1208', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>+</button>
-                      <span style={{ fontSize: '11px', color: '#C9A84C', minWidth: '40px', textAlign: 'right' }}>₹{item.price * item.quantity}</span>
+                      <span style={{ fontSize: '11px', color: '#C9A84C', minWidth: '40px', textAlign: 'right' }}>₹{formatAmount((Number(item.price) || 0) * (Number(item.quantity) || 0))}</span>
                     </div>
                   </div>
                 ))}
@@ -727,7 +732,7 @@ const AdminDashboard = () => {
                 {order?.items?.map(item => (
                   <div key={item.menuItem_id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', padding: '4px 0', color: '#1A1208' }}>
                     <span>{item.name} × {item.quantity}</span>
-                    <span>₹{item.price * item.quantity}</span>
+                    <span>₹{formatAmount((Number(item.price) || 0) * (Number(item.quantity) || 0))}</span>
                   </div>
                 ))}
                 <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '0.5px dashed rgba(201,168,76,0.3)', paddingTop: '8px', marginTop: '8px' }}>
@@ -779,7 +784,7 @@ const AdminDashboard = () => {
                 {bill.items?.map((item, i) => (
                   <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#8A7A5A', padding: '2px 0' }}>
                     <span>{item.name} × {item.quantity}</span>
-                    <span>₹{item.price * item.quantity}</span>
+                    <span>₹{formatAmount((Number(item.price) || 0) * (Number(item.quantity) || 0))}</span>
                   </div>
                 ))}
               </div>

@@ -64,7 +64,13 @@ const StaffDashboard = () => {
     await fetchMenuItems();
   };
 
+  const getItemPrice = (menuItem) => {
+    if (selectedTable?.seating_type === 'AC') return menuItem.ac_price;
+    return menuItem.non_ac_price;
+  };
+
   const addItem = (menuItem) => {
+    const price = getItemPrice(menuItem) ?? 0;
     const currentItems = order?.items || [];
     const existing = currentItems.find(i => i.menuItem_id === menuItem._id);
     let updatedItems;
@@ -76,7 +82,7 @@ const StaffDashboard = () => {
       updatedItems = [...currentItems, {
         menuItem_id: menuItem._id,
         name: menuItem.name,
-        price: menuItem.price,
+        price,
         quantity: 1
       }];
     }
@@ -110,7 +116,7 @@ const StaffDashboard = () => {
   };
 
   const totalAmount = (order?.items || []).reduce(
-    (sum, item) => sum + item.price * item.quantity, 0
+    (sum, item) => sum + (Number(item.price) || 0) * (Number(item.quantity) || 0), 0
   );
 
   const getStatusColor = (status) => {
@@ -123,6 +129,11 @@ const StaffDashboard = () => {
     if (status === 'available') return 'Available';
     if (status === 'occupied') return 'Occupied';
     return 'Billing';
+  };
+
+  const formatAmount = (value) => {
+    const amount = (Number(value) || 0).toFixed(2);
+    return amount.endsWith('.00') ? amount.slice(0, -3) : amount;
   };
 
   // ─── TABLES SCREEN ────────────────────────────────────────────────────────────
@@ -307,7 +318,7 @@ const StaffDashboard = () => {
                     color: '#1A1208', display: 'flex', alignItems: 'center', justifyContent: 'center'
                   }}>+</button>
                   <span style={{ fontSize: '12px', color: '#C9A84C', minWidth: '40px', textAlign: 'right' }}>
-                    ₹{item.price * item.quantity}
+                    ₹{formatAmount((Number(item.price) || 0) * (Number(item.quantity) || 0))}
                   </span>
                 </div>
               </div>
