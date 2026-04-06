@@ -1,7 +1,11 @@
 import axios from 'axios';
 
+const baseURL = window.location.hostname === 'localhost'
+  ? 'http://localhost:5000/api'
+  : 'https://restaurant-app-backend-ui3j.onrender.com/api';
+
 const api = axios.create({
-  baseURL: 'https://restaurant-app-backend-ui3j.onrender.com/api',
+  baseURL,
   timeout: 30000,
 });
 

@@ -12,6 +12,23 @@ const getTables = async (req, res) => {
   }
 };
 
+const getTableByNumber = async (req, res) => {
+  try {
+    const db = mongoose.connection.db;
+    const { table_number } = req.params;
+    const table = await db.collection('tables')
+      .findOne({ table_number: parseInt(table_number) });
+
+    if (!table) {
+      return res.status(404).json({ message: 'Table not found' });
+    }
+
+    res.json({ success: true, table });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
 const createTable = async (req, res) => {
   try {
     const db = mongoose.connection.db;
@@ -80,4 +97,4 @@ const deleteTable = async (req, res) => {
   }
 };
 
-module.exports = { getTables, createTable, updateTableStatus, deleteTable };
+module.exports = { getTables, getTableByNumber, createTable, updateTableStatus, deleteTable };

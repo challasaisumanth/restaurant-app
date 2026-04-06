@@ -42,26 +42,30 @@ const CustomerMenu = () => {
     const fetchAll = async () => {
       setCategoriesLoading(true);
       try {
-        const [tableRes, catRes, menuRes] = await Promise.all([
-          api.get('/tables'),
+        const [tableRes, catRes, menuRes] = await Promise.allSettled([
+          api.get(`/tables/public/${tableNumber}`),
           api.get('/menu/categories'),
           api.get('/menu')
         ]);
 
-        // Set table type
-        const table = tableRes.data.tables.find(
-          t => t.table_number === parseInt(tableNumber)
-        );
-        if (table?.type) setTableType(table.type);
+        if (tableRes.status === 'fulfilled' && tableRes.value.data.table?.type) {
+          setTableType(tableRes.value.data.table.type);
+        }
 
-        // Set categories
-        const fetchedCategories = catRes.data.categories?.length > 0
-          ? catRes.data.categories
+        const fetchedCategories = Array.isArray(catRes.status === 'fulfilled' ? catRes.value.data.categories : [])
+          ? (catRes.status === 'fulfilled' ? catRes.value.data.categories : [])
+          : [];
+        const allItems = menuRes.status === 'fulfilled' ? menuRes.value.data.items : [];
+        const itemCategories = Array.from(new Set(allItems
+          .map(item => item.category)
+          .filter(Boolean)));
+        const finalCategories = Array.from(new Set([...fetchedCategories, ...itemCategories]));
+        const categoriesToUse = finalCategories.length > 0
+          ? finalCategories
           : ['Veg-Starters', 'Paneer-Items', 'Ice Creams', 'Beverages'];
-        setCategories(fetchedCategories);
+        setCategories(categoriesToUse);
 
         // Set category images from first available item per category
-        const allItems = menuRes.data.items;
         const imgMap = {};
         allItems.forEach(item => {
           if (item.image_url && item.availability && !imgMap[item.category]) {
@@ -72,7 +76,7 @@ const CustomerMenu = () => {
 
         // ✅ Cache all items per category so clicking category is instant!
         const itemsCache = {};
-        fetchedCategories.forEach(cat => {
+        categoriesToUse.forEach(cat => {
           itemsCache[cat] = allItems.filter(i => i.category === cat);
         });
         setAllItemsCache(itemsCache);
