@@ -5,7 +5,7 @@ import api from '../utils/api';
 const CustomerMenu = () => {
   const { tableNumber } = useParams();
   const [screen, setScreen] = useState('welcome');
-  const [categories, setCategories] = useState(['Veg-Starters', 'Paneer-Items', 'Ice Creams', 'Beverages']);
+  const [categories, setCategories] = useState([]);
   const [categoryImages, setCategoryImages] = useState({});
   const [selectedCategory, setSelectedCategory] = useState('');
   const [items, setItems] = useState([]);
@@ -35,37 +35,36 @@ const CustomerMenu = () => {
     'Beverages': 'linear-gradient(135deg, #A33030, #E76F51)',
   };
 
-  const getGradient = (cat) => categoryGradients[cat] || 'linear-gradient(135deg, #8A7A5A, #C9A84C)';
+  const getGradient = (cat) =>
+    categoryGradients[cat] || 'linear-gradient(135deg, #8A7A5A, #C9A84C)';
 
-  // ✅ All API calls at once using Promise.all — much faster!
+  // ✅ All fetches at once — fast loading
   useEffect(() => {
     const fetchAll = async () => {
       setCategoriesLoading(true);
       try {
-        const [tableRes, catRes, menuRes] = await Promise.allSettled([
-          api.get(`/tables/public/${tableNumber}`),
+        // Fetch categories and menu items together
+        const [catRes, menuRes] = await Promise.all([
           api.get('/menu/categories'),
           api.get('/menu')
         ]);
 
-        if (tableRes.status === 'fulfilled' && tableRes.value.data.table?.type) {
-          setTableType(tableRes.value.data.table.type);
+        // ✅ Fetch table type via public route — no auth needed
+        try {
+          const tableRes = await api.get(`/tables/public/${tableNumber}`);
+          if (tableRes.data.type) setTableType(tableRes.data.type);
+        } catch (err) {
+          console.log('Table type fetch failed, using default non-ac');
         }
 
-        const fetchedCategories = Array.isArray(catRes.status === 'fulfilled' ? catRes.value.data.categories : [])
-          ? (catRes.status === 'fulfilled' ? catRes.value.data.categories : [])
-          : [];
-        const allItems = menuRes.status === 'fulfilled' ? menuRes.value.data.items : [];
-        const itemCategories = Array.from(new Set(allItems
-          .map(item => item.category)
-          .filter(Boolean)));
-        const finalCategories = Array.from(new Set([...fetchedCategories, ...itemCategories]));
-        const categoriesToUse = finalCategories.length > 0
-          ? finalCategories
+        // Set categories from DB
+        const fetchedCategories = catRes.data.categories?.length > 0
+          ? catRes.data.categories
           : ['Veg-Starters', 'Paneer-Items', 'Ice Creams', 'Beverages'];
-        setCategories(categoriesToUse);
+        setCategories(fetchedCategories);
 
         // Set category images from first available item per category
+        const allItems = menuRes.data.items;
         const imgMap = {};
         allItems.forEach(item => {
           if (item.image_url && item.availability && !imgMap[item.category]) {
@@ -74,15 +73,15 @@ const CustomerMenu = () => {
         });
         setCategoryImages(imgMap);
 
-        // ✅ Cache all items per category so clicking category is instant!
+        // ✅ Cache all items per category — instant category click!
         const itemsCache = {};
-        categoriesToUse.forEach(cat => {
+        fetchedCategories.forEach(cat => {
           itemsCache[cat] = allItems.filter(i => i.category === cat);
         });
         setAllItemsCache(itemsCache);
 
       } catch (err) {
-        console.error(err);
+        console.error('Menu fetch error:', err);
       } finally {
         setCategoriesLoading(false);
       }
@@ -91,7 +90,7 @@ const CustomerMenu = () => {
     fetchAll();
   }, [tableNumber]);
 
-  // ✅ Uses cache — no API call needed when clicking category!
+  // ✅ Uses cache — no extra API call when clicking category
   const handleCategoryClick = (category) => {
     setSelectedCategory(category);
     if (allItemsCache[category]) {
@@ -179,12 +178,14 @@ const CustomerMenu = () => {
         fontFamily: "'DM Sans', sans-serif",
         position: 'relative'
       }}>
+        {/* Ornament */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1.5rem' }}>
           <div style={{ height: '0.5px', width: '70px', background: 'linear-gradient(90deg, transparent, #C9A84C)' }}></div>
           <div style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#C9A84C' }}></div>
           <div style={{ height: '0.5px', width: '70px', background: 'linear-gradient(90deg, #C9A84C, transparent)' }}></div>
         </div>
 
+        {/* Shop Name */}
         <h1 style={{
           fontFamily: "'Playfair Display', serif",
           fontSize: '42px',
@@ -206,6 +207,7 @@ const CustomerMenu = () => {
           Fine Dining Experience
         </p>
 
+        {/* Table Number */}
         <div style={{
           background: 'rgba(201,168,76,0.1)',
           border: '0.5px solid rgba(201,168,76,0.3)',
@@ -219,6 +221,7 @@ const CustomerMenu = () => {
           ✦ Table No. {tableNumber} ✦
         </div>
 
+        {/* AC/Non-AC Badge */}
         <div style={{
           fontSize: '10px',
           padding: '3px 12px',
@@ -232,6 +235,7 @@ const CustomerMenu = () => {
           {tableType === 'ac' ? '❄️ AC Section' : '🌿 Non-AC Section'}
         </div>
 
+        {/* Enter Button */}
         <button
           onClick={() => setScreen('categories')}
           style={{
@@ -250,7 +254,7 @@ const CustomerMenu = () => {
           Enter
         </button>
 
-        {/* Your name credit */}
+        {/* Credit */}
         <div style={{
           position: 'absolute',
           bottom: '20px',
@@ -317,11 +321,16 @@ const CustomerMenu = () => {
           }}>
             Our Menu
           </h2>
-          <p style={{ fontSize: '12px', color: 'rgba(201,168,76,0.5)', marginBottom: '24px', letterSpacing: '0.5px' }}>
+          <p style={{
+            fontSize: '12px',
+            color: 'rgba(201,168,76,0.5)',
+            marginBottom: '24px',
+            letterSpacing: '0.5px'
+          }}>
             What would you like today?
           </p>
 
-          {/* Category Grid with Images */}
+          {/* ✅ Categories from DB — not hardcoded */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
             {categories.map((cat) => (
               <div
@@ -347,7 +356,12 @@ const CustomerMenu = () => {
                     <img
                       src={categoryImages[cat]}
                       alt={cat}
-                      style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                        display: 'block'
+                      }}
                       onError={(e) => {
                         e.target.style.display = 'none';
                         e.target.parentElement.style.background = getGradient(cat);
@@ -356,7 +370,7 @@ const CustomerMenu = () => {
                   )}
                 </div>
 
-                {/* Dark overlay */}
+                {/* Dark Overlay */}
                 <div style={{
                   position: 'absolute', inset: 0,
                   background: 'linear-gradient(to top, rgba(26,18,8,0.9) 0%, rgba(26,18,8,0.3) 50%, rgba(26,18,8,0.1) 100%)',
@@ -369,18 +383,18 @@ const CustomerMenu = () => {
                   display: 'flex', flexDirection: 'column',
                   justifyContent: 'space-between', padding: '14px'
                 }}>
-                  {/* Icon top left */}
+                  {/* Icon */}
                   <div style={{
                     width: '36px', height: '36px', borderRadius: '10px',
                     background: 'rgba(201,168,76,0.2)',
                     border: '0.5px solid rgba(201,168,76,0.4)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: '18px'
+                    display: 'flex', alignItems: 'center',
+                    justifyContent: 'center', fontSize: '18px'
                   }}>
                     {categoryIcons[cat] || '🍽️'}
                   </div>
 
-                  {/* Name + desc bottom */}
+                  {/* Name + Desc */}
                   <div>
                     <div style={{
                       fontFamily: "'Playfair Display', serif",
@@ -389,7 +403,11 @@ const CustomerMenu = () => {
                     }}>
                       {cat}
                     </div>
-                    <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.6)', marginBottom: '8px' }}>
+                    <div style={{
+                      fontSize: '10px',
+                      color: 'rgba(255,255,255,0.6)',
+                      marginBottom: '8px'
+                    }}>
                       {categoryDesc[cat] || 'Delicious selections'}
                     </div>
                     <div style={{
@@ -465,10 +483,12 @@ const CustomerMenu = () => {
           </div>
         </div>
 
-        {/* Category Header Banner */}
+        {/* Category Banner */}
         <div style={{
           height: '120px',
-          background: categoryImages[selectedCategory] ? 'none' : getGradient(selectedCategory),
+          background: categoryImages[selectedCategory]
+            ? 'none'
+            : getGradient(selectedCategory),
           position: 'relative',
           overflow: 'hidden'
         }}>
@@ -486,11 +506,17 @@ const CustomerMenu = () => {
           <div style={{
             position: 'absolute', inset: 0,
             background: 'linear-gradient(to right, rgba(26,18,8,0.85), rgba(26,18,8,0.4))',
-            display: 'flex', alignItems: 'center', padding: '0 20px', gap: '12px'
+            display: 'flex', alignItems: 'center',
+            padding: '0 20px', gap: '12px'
           }}>
-            <div style={{ fontSize: '32px' }}>{categoryIcons[selectedCategory] || '🍽️'}</div>
+            <div style={{ fontSize: '32px' }}>
+              {categoryIcons[selectedCategory] || '🍽️'}
+            </div>
             <div>
-              <div style={{ fontFamily: "'Playfair Display', serif", fontSize: '20px', color: '#C9A84C' }}>
+              <div style={{
+                fontFamily: "'Playfair Display', serif",
+                fontSize: '20px', color: '#C9A84C'
+              }}>
                 {selectedCategory}
               </div>
               <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)' }}>
@@ -507,13 +533,18 @@ const CustomerMenu = () => {
             </div>
           ) : (
             <>
+              {/* Available Items */}
               {availableItems.length > 0 && (
                 <>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+                  <div style={{
+                    display: 'flex', alignItems: 'center',
+                    gap: '8px', marginBottom: '16px'
+                  }}>
                     <div style={{ flex: 1, height: '0.5px', background: 'rgba(201,168,76,0.18)' }}></div>
-                    <span style={{ fontSize: '9px', color: '#8A7A5A', letterSpacing: '1.5px', textTransform: 'uppercase' }}>
-                      Available Now
-                    </span>
+                    <span style={{
+                      fontSize: '9px', color: '#8A7A5A',
+                      letterSpacing: '1.5px', textTransform: 'uppercase'
+                    }}>Available Now</span>
                     <div style={{ flex: 1, height: '0.5px', background: 'rgba(201,168,76,0.18)' }}></div>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
@@ -524,13 +555,18 @@ const CustomerMenu = () => {
                 </>
               )}
 
+              {/* Unavailable Items */}
               {unavailableItems.length > 0 && (
                 <>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '20px 0 16px' }}>
+                  <div style={{
+                    display: 'flex', alignItems: 'center',
+                    gap: '8px', margin: '20px 0 16px'
+                  }}>
                     <div style={{ flex: 1, height: '0.5px', background: 'rgba(201,168,76,0.18)' }}></div>
-                    <span style={{ fontSize: '9px', color: '#8A7A5A', letterSpacing: '1.5px', textTransform: 'uppercase' }}>
-                      Currently Unavailable
-                    </span>
+                    <span style={{
+                      fontSize: '9px', color: '#8A7A5A',
+                      letterSpacing: '1.5px', textTransform: 'uppercase'
+                    }}>Currently Unavailable</span>
                     <div style={{ flex: 1, height: '0.5px', background: 'rgba(201,168,76,0.18)' }}></div>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
@@ -566,6 +602,7 @@ const ItemCard = ({ item, unavailable, tableType }) => {
       overflow: 'hidden',
       opacity: unavailable ? 0.5 : 1
     }}>
+      {/* Image */}
       <div style={{
         height: '110px',
         background: 'linear-gradient(135deg, #f5e8c8, #e8d5a0)',
@@ -591,12 +628,15 @@ const ItemCard = ({ item, unavailable, tableType }) => {
           borderRadius: '6px', fontWeight: '500',
           background: unavailable ? '#FDECEA' : '#D8F3DC',
           color: unavailable ? '#A33030' : '#2D6A4F',
-          border: `0.5px solid ${unavailable ? 'rgba(163,48,48,0.2)' : 'rgba(45,106,79,0.2)'}`
+          border: `0.5px solid ${unavailable
+            ? 'rgba(163,48,48,0.2)'
+            : 'rgba(45,106,79,0.2)'}`
         }}>
           {unavailable ? 'Unavailable' : 'Available'}
         </span>
       </div>
 
+      {/* Info */}
       <div style={{ padding: '10px 12px 12px' }}>
         <div style={{
           fontFamily: "'Playfair Display', serif",
@@ -606,7 +646,10 @@ const ItemCard = ({ item, unavailable, tableType }) => {
           {item.name}
         </div>
         {item.description && (
-          <div style={{ fontSize: '9px', color: '#8A7A5A', marginBottom: '6px', lineHeight: '1.4' }}>
+          <div style={{
+            fontSize: '9px', color: '#8A7A5A',
+            marginBottom: '6px', lineHeight: '1.4'
+          }}>
             {item.description}
           </div>
         )}
